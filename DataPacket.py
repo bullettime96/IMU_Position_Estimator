@@ -17,23 +17,22 @@ class DataPacket:
     def __format_constructor__(self, rawFormat):
         dataFormat = []
         for element in rawFormat:
-            match element.lower():
-                case 'timestamp':
-                    dataFormat.append(IMUDataElement.TimeStamp())
-                case 'accx':
-                    dataFormat.append(IMUDataElement.AccX())
-                case 'accy':
-                    dataFormat.append(IMUDataElement.AccY())
-                case 'accz':
-                    dataFormat.append(IMUDataElement.AccZ())
-                case 'gyrox':
-                    dataFormat.append(IMUDataElement.GyroX())
-                case 'gyroy':
-                    dataFormat.append(IMUDataElement.GyroY())
-                case 'gyroz':
-                    dataFormat.append(IMUDataElement.GyroZ())
-                case _:
-                    raise self.InvalidElementException(element)
+            if element.lower() == 'timestamp':
+                dataFormat.append(IMUDataElement.TimeStamp())
+            elif element.lower() == 'accx':
+                dataFormat.append(IMUDataElement.AccX())
+            elif element.lower() == 'accy':
+                dataFormat.append(IMUDataElement.AccY())
+            elif element.lower() == 'accz':
+                dataFormat.append(IMUDataElement.AccZ())
+            elif element.lower() == 'gyrox':
+                dataFormat.append(IMUDataElement.GyroX())
+            elif element.lower() == 'gyroy':
+                dataFormat.append(IMUDataElement.GyroY())
+            elif element.lower() == 'gyroz':
+                dataFormat.append(IMUDataElement.GyroZ())
+            else:
+                raise self.InvalidElementException(element)
         return dataFormat
 
     def __init__(self, rawData, packetFormat):
@@ -56,32 +55,32 @@ class DataPacket:
         merged_list = [{"rawData": rawData[i], "format": self.dataFormat[i]} for i in range(0, len(packetFormat))]
 
         for dataPoint in merged_list:
-            match dataPoint["format"].DataType:
-                case 'uint32':
-                    parsedData = int(dataPoint["rawData"])
-                case 'float':
-                    parsedData = float(dataPoint["rawData"])
-                case _:
-                    raise self.DataTypeException(dataPoint["format"].DataType)
+            if dataPoint["format"].DataType == 'uint32':
+                parsedData = int(dataPoint["rawData"])
+            elif dataPoint["format"].DataType == 'float':
+                parsedData = float(dataPoint["rawData"])
+            else:
+                raise self.DataTypeException(dataPoint["format"].DataType)
+
             if dataPoint["format"].Convert:
                 parsedData *= 500/32768
-            match dataPoint["format"].ElementType:
-                case 'timestamp':
-                    self.timestamp = parsedData
-                case 'accx':
-                    self.accX = parsedData
-                case 'accy':
-                    self.accY = parsedData
-                case 'accz':
-                    self.accZ = parsedData
-                case 'gyrox':
-                    self.gyroX = parsedData
-                case 'gyroy':
-                    self.gyroY = parsedData
-                case 'gyroz':
-                    self.gyroZ = parsedData
-                case _:
-                    raise self.InvalidElementException(dataPoint["format"].ElementType)
+
+            if dataPoint["format"].ElementType == 'timestamp':
+                self.timestamp = parsedData
+            elif dataPoint["format"].ElementType == 'accx':
+                self.accX = parsedData
+            elif dataPoint["format"].ElementType == 'accy':
+                self.accY = parsedData
+            elif dataPoint["format"].ElementType == 'accz':
+                self.accZ = parsedData
+            elif dataPoint["format"].ElementType == 'gyrox':
+                self.gyroX = parsedData
+            elif dataPoint["format"].ElementType == 'gyroy':
+                self.gyroY = parsedData
+            elif dataPoint["format"].ElementType == 'gyroz':
+                self.gyroZ = parsedData
+            else:
+                raise self.InvalidElementException(dataPoint["format"].ElementType)
 
     def __repr__(self) -> str:
         return f"Data point (Timestamp: {self.timestamp}, accX: {self.accX}, accY: {self.accY}, accZ: {self.accZ}, " \
@@ -110,7 +109,7 @@ class IMUDataElement:
         def __init__(self):
             self.ElementType = 'accz'
             self.DataType = 'float'
-            self.Convert = True
+            self.Convert = False
 
     class GyroX:
         def __init__(self):
