@@ -1,5 +1,8 @@
 from DataPacket import DataPacket as dp
 import numpy as np
+from scipy.signal import butter, lfilter, freqz
+import matplotlib.pyplot as plt
+from matplotlib import animation
 
 
 class IMUSensor:
@@ -24,6 +27,7 @@ class IMUSensor:
 
     def parse(self, rawData=None, rawDataFormat=None):
         if not (rawData is None):
+            self.rawData = []
             for row in rawData:
                 self.rawData.append(row)
         if not (rawDataFormat is None):
@@ -93,6 +97,10 @@ class IMUSensor:
             Axz.append(np.arctan2(RxEst[i - 1], RzEst[i - 1]) + (((gyroY[i - 1] + gyroY[i]) / 2) * SamplingPeriod))
             Ayz.append(np.arctan2(RyEst[i - 1], RzEst[i - 1]) + (((gyroX[i - 1] + gyroX[i]) / 2) * SamplingPeriod))
 
+            # Axy.append(np.arctan2(RxEst[i - 1], RyEst[i - 1]) + (gyroZ[i - 1] * SamplingPeriod))
+            # Axz.append(np.arctan2(RxEst[i - 1], RzEst[i - 1]) + (gyroY[i - 1] * SamplingPeriod))
+            # Ayz.append(np.arctan2(RyEst[i - 1], RzEst[i - 1]) + (gyroX[i - 1] * SamplingPeriod))
+
             # Axy.append(Axy[i - 1] + (((gyroZ[i - 1] + gyroZ[i]) / 2) * SamplingPeriod))
             # Axz.append(Axz[i - 1] + (((gyroY[i - 1] + gyroY[i]) / 2) * SamplingPeriod))
             # Ayz.append(Ayz[i - 1] + (((gyroX[i - 1] + gyroX[i]) / 2) * SamplingPeriod))
@@ -142,7 +150,6 @@ class IMUSensor:
             VelX.append(VelX[i - 1] + (self.AccComp[0][i] * SamplingPeriod))
             VelY.append(VelY[i - 1] + (self.AccComp[1][i] * SamplingPeriod))
             VelZ.append(VelZ[i - 1] + (self.AccComp[2][i] * SamplingPeriod))
-            print(f"VelX len: {len(VelX)}")
 
         self.Velocity = [VelX, VelY, VelZ]
         return self.Velocity
@@ -353,3 +360,358 @@ class IMUSensor:
                 f"{self.rawDataFormat}, Parsed data length: {len(self.dataPackets)}, " \
                 f"Acceleration data length: {len(self.getAccXCompensated())}, Velocity data length: " \
                    f"{len(self.getVelocityX())}, Trajectory data length: {len(self.getTrajectoryX())})"
+
+    def __butter_lowpass(self, cutoff, fs, order=5):
+        return butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+    def butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self.__butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
+
+    def update3D(self, iteration, RxData, RyData, RzData, RxLines, RyLines, RzLines, RLine):
+        RxLines[0].set_data(np.array([0, RxData[iteration]]), np.array([0, 0]))
+        RxLines[0].set_3d_properties(np.array([0, 0]))
+        RxLines[1].set_data(np.array([0, RxData[iteration]]), np.array([RyData[iteration], RyData[iteration]]))
+        RxLines[1].set_3d_properties(np.array([0, 0]))
+        RxLines[2].set_data(np.array([0, RxData[iteration]]), np.array([0, 0]))
+        RxLines[2].set_3d_properties(np.array([RzData[iteration], RzData[iteration]]))
+        RxLines[3].set_data(np.array([0, RxData[iteration]]), np.array([RyData[iteration], RyData[iteration]]))
+        RxLines[3].set_3d_properties(np.array([RzData[iteration], RzData[iteration]]))
+
+        RyLines[0].set_data(np.array([0, 0]), np.array([0, RyData[iteration]]))
+        RyLines[0].set_3d_properties(np.array([0, 0]))
+        RyLines[1].set_data(np.array([RxData[iteration], RxData[iteration]]), np.array([0, RyData[iteration]]))
+        RyLines[1].set_3d_properties(np.array([0, 0]))
+        RyLines[2].set_data(np.array([0, 0]), np.array([0, RyData[iteration]]))
+        RyLines[2].set_3d_properties(np.array([RzData[iteration], RzData[iteration]]))
+        RyLines[3].set_data(np.array([RxData[iteration], RxData[iteration]]), np.array([0, RyData[iteration]]))
+        RyLines[3].set_3d_properties(np.array([RzData[iteration], RzData[iteration]]))
+
+        RzLines[0].set_data(np.array([0, 0]), np.array([0, 0]))
+        RzLines[0].set_3d_properties(np.array([0, RzData[iteration]]))
+        RzLines[1].set_data(np.array([RxData[iteration], RxData[iteration]]), np.array([0, 0]))
+        RzLines[1].set_3d_properties(np.array([0, RzData[iteration]]))
+        RzLines[2].set_data(np.array([0, 0]), np.array([RyData[iteration], RyData[iteration]]))
+        RzLines[2].set_3d_properties(np.array([0, RzData[iteration]]))
+        RzLines[3].set_data(np.array([RxData[iteration], RxData[iteration]]),
+                            np.array([RyData[iteration], RyData[iteration]]))
+        RzLines[3].set_3d_properties(np.array([0, RzData[iteration]]))
+
+        RLine.set_data(np.array([0, RxData[iteration]]), np.array([0, RyData[iteration]]))
+        RLine.set_3d_properties(np.array([0, RzData[iteration]]))
+
+    def plotRawMeasurements(self, show=False, file='rawMeasurements.jpg'):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(4, 2, 1)
+        plt.title('Acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorX())
+        plt.subplot(4, 2, 3)
+        plt.title('Acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorY())
+        plt.subplot(4, 2, 5)
+        plt.title('Acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorZ())
+        plt.subplot(4, 2, 7)
+        plt.title('Total Acceleration')
+        plt.plot(self.getTimestamps(), self.getTotalAcceleration())
+        plt.subplot(4, 2, 2)
+        plt.title('Rotation rate around X Axis')
+        plt.plot(self.getTimestamps(), self.getGyroX())
+        plt.subplot(4, 2, 4)
+        plt.title('Rotation rate around Y Axis')
+        plt.plot(self.getTimestamps(), self.getGyroY())
+        plt.subplot(4, 2, 6)
+        plt.title('Rotation rate around Z Axis')
+        plt.plot(self.getTimestamps(), self.getGyroZ())
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)
+
+    def plotCalculation(self, show=False, file='Calculations.jpg'):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(3, 3, 1)
+        plt.title('Normalized raw acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getRxAcc())
+        plt.subplot(3, 3, 4)
+        plt.title('Normalized raw acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRyAcc())
+        plt.subplot(3, 3, 7)
+        plt.title('Normalized raw acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getRzAcc())
+        plt.subplot(3, 3, 2)
+
+        plt.title('Compensating acceleration from Gyro in X Axis')
+        plt.plot(self.getTimestamps(), self.getRxGyro())
+        plt.subplot(3, 3, 5)
+        plt.title('Compensating acceleration from Gyro in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRyGyro())
+        plt.subplot(3, 3, 8)
+        plt.title('Compensating acceleration from Gyro in Z Axis')
+        plt.plot(self.getTimestamps(), self.getRzGyro())
+
+        plt.subplot(3, 3, 3)
+        plt.title('Normalized estimated acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getRxEst())
+        plt.subplot(3, 3, 6)
+        plt.title('Normalized estimated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRyEst())
+        plt.subplot(3, 3, 9)
+        plt.title('Normalized estimated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getRzEst())
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)
+
+    def plotComparison(self, show=False, file='Comparison.jpg'):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(4, 3, 1)
+        plt.title('Acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorX())
+        plt.subplot(4, 3, 4)
+        plt.title('Acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorY())
+        plt.subplot(4, 3, 7)
+        plt.title('Acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRawAcceleratorZ())
+        plt.subplot(4, 3, 10)
+        plt.title('Total Acceleration')
+        plt.plot(self.getTimestamps(), self.getTotalAcceleration())
+
+        plt.subplot(4, 3, 2)
+        plt.title('Normalized estimated acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getRxEst())
+        plt.subplot(4, 3, 5)
+        plt.title('Normalized estimated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getRyEst())
+        plt.subplot(4, 3, 8)
+        plt.title('Normalized estimated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getRzEst())
+
+        plt.subplot(4, 3, 3)
+        plt.title('Compensated acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getAccXCompensated())
+        plt.subplot(4, 3, 6)
+        plt.title('Compensated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getAccYCompensated())
+        plt.subplot(4, 3, 9)
+        plt.title('Compensated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getAccZCompensated())
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)
+
+    def plotFiltering(self, show=False, file='Filtering.jpg', Cutoff_Freq=25, Sampling_Freq=333, Order=5):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(3, 2, 1)
+        plt.title('Compensated acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getAccXCompensated())
+        plt.subplot(3, 2, 3)
+        plt.title('Compensated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getAccYCompensated())
+        plt.subplot(3, 2, 5)
+        plt.title('Compensated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getAccZCompensated())
+
+        plt.subplot(3, 2, 2)
+        plt.title(f'Filtered acceleration in X Axis (Cutoff freq.: {Cutoff_Freq}Hz)')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccXCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 4)
+        plt.title(f'Filtered acceleration in Y Axis (Cutoff freq.: {Cutoff_Freq}Hz)')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccYCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 6)
+        plt.title(f'Filtered acceleration in Z Axis (Cutoff freq.: {Cutoff_Freq}Hz)')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccZCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)
+
+    def plotAnimatedAccelerationEstimated(self, filtered=False, Cutoff_Freq=25, Sampling_Freq=333, Order=5):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        XAxis, = ax.plot3D([-2, 2], [0, 0], [0, 0], 'k-', linewidth=0.5)
+        YAxis, = ax.plot3D([0, 0], [-2, 2], [0, 0], 'k-', linewidth=0.5)
+        ZAxis, = ax.plot3D([0, 0], [0, 0], [-2, 2], 'k-', linewidth=0.5)
+        Rx, = ax.plot3D([], [], [], 'b-', linewidth=2)
+        RxP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RxP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RxP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        Ry, = ax.plot3D([], [], [], 'r-', linewidth=2)
+        RyP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RyP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RyP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        Rz, = ax.plot3D([], [], [], 'g-', linewidth=2)
+        RzP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RzP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RzP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        R, = ax.plot3D([], [], [], 'k-', linewidth=3)
+
+        ax.axes.set_xlim3d(left=-2, right=2)
+        ax.axes.set_ylim3d(bottom=-2, top=2)
+        ax.axes.set_zlim3d(bottom=-2, top=2)
+
+        if not filtered:
+            ani = animation.FuncAnimation(
+                fig,
+                self.update3D,
+                len(self.getTimestamps()),
+                fargs=(
+                    self.getRxEst(),
+                    self.getRyEst(),
+                    self.getRzEst(),
+                    [Rx, RxP1, RxP2, RxP3],
+                    [Ry, RyP1, RyP2, RyP3],
+                    [Rz, RzP1, RzP2, RzP3],
+                    R
+                ),
+                interval=10000 / len(self.getTimestamps()),
+                blit=False
+            )
+        else:
+            ani = animation.FuncAnimation(
+                fig,
+                self.update3D,
+                len(self.getTimestamps()),
+                fargs=(
+                    self.butter_lowpass_filter(self.getRxEst(), Cutoff_Freq, Sampling_Freq, Order),
+                    self.butter_lowpass_filter(self.getRyEst(), Cutoff_Freq, Sampling_Freq, Order),
+                    self.butter_lowpass_filter(self.getRzEst(), Cutoff_Freq, Sampling_Freq, Order),
+                    [Rx, RxP1, RxP2, RxP3],
+                    [Ry, RyP1, RyP2, RyP3],
+                    [Rz, RzP1, RzP2, RzP3],
+                    R
+                ),
+                interval=10000 / len(self.getTimestamps()),
+                blit=False
+            )
+
+        plt.show()
+
+    def plotAnimatedAccelerationCompensated(self, filtered=False, Cutoff_Freq=25, Sampling_Freq=333, Order=5):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        XAxis, = ax.plot3D([-2, 2], [0, 0], [0, 0], 'k-', linewidth=0.5)
+        YAxis, = ax.plot3D([0, 0], [-2, 2], [0, 0], 'k-', linewidth=0.5)
+        ZAxis, = ax.plot3D([0, 0], [0, 0], [-2, 2], 'k-', linewidth=0.5)
+        Rx, = ax.plot3D([], [], [], 'b-', linewidth=2)
+        RxP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RxP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RxP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        Ry, = ax.plot3D([], [], [], 'r-', linewidth=2)
+        RyP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RyP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RyP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        Rz, = ax.plot3D([], [], [], 'g-', linewidth=2)
+        RzP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RzP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        RzP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
+        R, = ax.plot3D([], [], [], 'k-', linewidth=3)
+
+        ax.axes.set_xlim3d(left=-2, right=2)
+        ax.axes.set_ylim3d(bottom=-2, top=2)
+        ax.axes.set_zlim3d(bottom=-2, top=2)
+
+        if not filtered:
+            ani = animation.FuncAnimation(
+                fig,
+                self.update3D,
+                len(self.getTimestamps()),
+                fargs=(
+                    self.getAccXCompensated(),
+                    self.getAccYCompensated(),
+                    self.getAccZCompensated(),
+                    [Rx, RxP1, RxP2, RxP3],
+                    [Ry, RyP1, RyP2, RyP3],
+                    [Rz, RzP1, RzP2, RzP3],
+                    R
+                ),
+                interval=10000 / len(self.getTimestamps()),
+                blit=False
+            )
+        else:
+            ani = animation.FuncAnimation(
+                fig,
+                self.update3D,
+                len(self.getTimestamps()),
+                fargs=(
+                    self.butter_lowpass_filter(self.getAccXCompensated(), Cutoff_Freq, Sampling_Freq, Order),
+                    self.butter_lowpass_filter(self.getAccYCompensated(), Cutoff_Freq, Sampling_Freq, Order),
+                    self.butter_lowpass_filter(self.getAccZCompensated(), Cutoff_Freq, Sampling_Freq, Order),
+                    [Rx, RxP1, RxP2, RxP3],
+                    [Ry, RyP1, RyP2, RyP3],
+                    [Rz, RzP1, RzP2, RzP3],
+                    R
+                ),
+                interval=10000 / len(self.getTimestamps()),
+                blit=False
+            )
+
+        plt.show()
+
+    def plotAccelerationAndVelocity(self, show=False, file='AccelerationAndVelocity.jpg'):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(3, 2, 1)
+        plt.title('Compensated acceleration in X Axis')
+        plt.plot(self.getTimestamps(), self.getAccXCompensated())
+        plt.subplot(3, 2, 3)
+        plt.title('Compensated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(), self.getAccYCompensated())
+        plt.subplot(3, 2, 5)
+        plt.title('Compensated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(), self.getAccZCompensated())
+        plt.subplot(3, 2, 2)
+        plt.title('Velocity in X Axis')
+        plt.plot(self.getTimestamps(), self.getVelocityX())
+        plt.subplot(3, 2, 4)
+        plt.title('Velocity in Y Axis')
+        plt.plot(self.getTimestamps(), self.getVelocityY())
+        plt.subplot(3, 2, 6)
+        plt.title('Velocity in Z Axis')
+        plt.plot(self.getTimestamps(), self.getVelocityZ())
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)
+
+    def plotAccelerationAndVelocityFiltered(self, show=False, file='AccelerationAndVelocityFiltered.jpg', Cutoff_Freq=25, Sampling_Freq=333, Order=5):
+        plt.figure(figsize=(20, 25), dpi=300)
+        plt.subplot(3, 2, 1)
+        plt.title('Compensated acceleration in X Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccXCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 3)
+        plt.title('Compensated acceleration in Y Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccYCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 5)
+        plt.title('Compensated acceleration in Z Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getAccZCompensated(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 2)
+        plt.title('Velocity in X Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getVelocityX(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 4)
+        plt.title('Velocity in Y Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getVelocityY(), Cutoff_Freq, Sampling_Freq, Order))
+        plt.subplot(3, 2, 6)
+        plt.title('Velocity in Z Axis')
+        plt.plot(self.getTimestamps(),
+                 self.butter_lowpass_filter(self.getVelocityZ(), Cutoff_Freq, Sampling_Freq, Order))
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(file)

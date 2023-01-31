@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/IMU_Packet_Analysis/venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (IMU_Position_Estimator)" jdkType="Python SDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
