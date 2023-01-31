@@ -51,7 +51,8 @@ def update3D(iteration, RxData, RyData, RzData, RxLines, RyLines, RzLines, RLine
     RLine.set_data(np.array([0, RxData[iteration]]), np.array([0, RyData[iteration]]))
     RLine.set_3d_properties(np.array([0, RzData[iteration]]))
 
-def plotRawMeasurements(sensor):
+def plotRawMeasurements(sensor, show=False, file='rawMeasurements.jpg'):
+    plt.figure(figsize=(20,25), dpi=300)
     plt.subplot(4, 2, 1)
     plt.title('Acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), sensor.getRawAcceleratorX())
@@ -73,9 +74,13 @@ def plotRawMeasurements(sensor):
     plt.subplot(4, 2, 6)
     plt.title('Rotation rate around Z Axis')
     plt.plot(sensor.getTimestamps(), sensor.getGyroZ())
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
-def plotCalculation(sensor):
+def plotCalculation(sensor, show=False, file='Calculations.jpg'):
+    plt.figure(figsize=(20, 25), dpi=300)
     plt.subplot(3, 3, 1)
     plt.title('Normalized raw acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), sensor.getRxAcc())
@@ -106,9 +111,13 @@ def plotCalculation(sensor):
     plt.title('Normalized estimated acceleration in Z Axis')
     plt.plot(sensor.getTimestamps(), sensor.getRzEst())
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
-def plotComparison(sensor):
+def plotComparison(sensor, show=False, file='Comparison.jpg'):
+    plt.figure(figsize=(20, 25), dpi=300)
     plt.subplot(4, 3, 1)
     plt.title('Acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), sensor.getRawAcceleratorX())
@@ -142,9 +151,13 @@ def plotComparison(sensor):
     plt.title('Compensated acceleration in Z Axis')
     plt.plot(sensor.getTimestamps(), sensor.getAccZCompensated())
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
-def plotFiltering(sensor):
+def plotFiltering(sensor, show=False, file='Filtering.jpg'):
+    plt.figure(figsize=(20, 25), dpi=300)
     plt.subplot(3, 2, 1)
     plt.title('Compensated acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), sensor.getAccXCompensated())
@@ -165,7 +178,10 @@ def plotFiltering(sensor):
     plt.title(f'Filtered acceleration in Z Axis (Cutoff freq.: {CUTOFF_FREQ}Hz)')
     plt.plot(sensor.getTimestamps(), butter_lowpass_filter(sensor.getAccZCompensated(), CUTOFF_FREQ, SAMPLING_FREQ, ORDER))
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
 def plotAnimatedAccelerationEstimated(sensor, filtered=False):
     fig = plt.figure()
@@ -175,8 +191,8 @@ def plotAnimatedAccelerationEstimated(sensor, filtered=False):
     ZAxis, = ax.plot3D([0, 0], [0, 0], [-2, 2], 'k-', linewidth=0.5)
     Rx, = ax.plot3D([], [], [], 'b-', linewidth=2)
     RxP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
-    RxP2, = ax.plot3D([], [], [], 'r--', linewidth=2)
-    RxP3, = ax.plot3D([], [], [], 'g--', linewidth=4)
+    RxP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+    RxP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
     Ry, = ax.plot3D([], [], [], 'r-', linewidth=2)
     RyP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
     RyP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
@@ -236,8 +252,8 @@ def plotAnimatedAccelerationCompensated(sensor, filtered=False):
     ZAxis, = ax.plot3D([0, 0], [0, 0], [-2, 2], 'k-', linewidth=0.5)
     Rx, = ax.plot3D([], [], [], 'b-', linewidth=2)
     RxP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
-    RxP2, = ax.plot3D([], [], [], 'r--', linewidth=2)
-    RxP3, = ax.plot3D([], [], [], 'g--', linewidth=4)
+    RxP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
+    RxP3, = ax.plot3D([], [], [], 'k--', linewidth=1)
     Ry, = ax.plot3D([], [], [], 'r-', linewidth=2)
     RyP1, = ax.plot3D([], [], [], 'k--', linewidth=1)
     RyP2, = ax.plot3D([], [], [], 'k--', linewidth=1)
@@ -289,7 +305,8 @@ def plotAnimatedAccelerationCompensated(sensor, filtered=False):
 
     plt.show()
 
-def plotAccelerationAndVelocity(sensor):
+def plotAccelerationAndVelocity(sensor, show=False, file='AccelerationAndVelocity.jpg'):
+    plt.figure(figsize=(20, 25), dpi=300)
     plt.subplot(3, 2, 1)
     plt.title('Compensated acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), sensor.getAccXCompensated())
@@ -309,9 +326,13 @@ def plotAccelerationAndVelocity(sensor):
     plt.title('Velocity in Z Axis')
     plt.plot(sensor.getTimestamps(), sensor.getVelocityZ())
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
-def plotAccelerationAndVelocityFiltered(sensor):
+def plotAccelerationAndVelocityFiltered(sensor, show=False, file='AccelerationAndVelocityFiltered.jpg'):
+    plt.figure(figsize=(20, 25), dpi=300)
     plt.subplot(3, 2, 1)
     plt.title('Compensated acceleration in X Axis')
     plt.plot(sensor.getTimestamps(), butter_lowpass_filter(sensor.getAccXCompensated(), CUTOFF_FREQ, SAMPLING_FREQ, ORDER))
@@ -331,7 +352,10 @@ def plotAccelerationAndVelocityFiltered(sensor):
     plt.title('Velocity in Z Axis')
     plt.plot(sensor.getTimestamps(), butter_lowpass_filter(sensor.getVelocityZ(), CUTOFF_FREQ, SAMPLING_FREQ, ORDER))
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(file)
 
 with open('output.csv', newline="\r\n") as csvfile:
     reader = csv.reader(csvfile, dialect='unix')
@@ -346,11 +370,11 @@ with open('output.csv', newline="\r\n") as csvfile:
     sensor.calculateTrajectory()
     print(sensor)
 
-    # plotRawMeasurements(sensor)
-    # plotCalculation(sensor)
-    # plotComparison(sensor)
-    # plotFiltering(sensor)
+    plotRawMeasurements(sensor)
+    plotCalculation(sensor)
+    plotComparison(sensor)
+    plotFiltering(sensor)
     # plotAnimatedAccelerationEstimated(sensor, filtered=True)
     # plotAnimatedAccelerationCompensated(sensor, filtered=True)
-    # plotAccelerationAndVelocity(sensor)
+    plotAccelerationAndVelocity(sensor)
     plotAccelerationAndVelocityFiltered(sensor)

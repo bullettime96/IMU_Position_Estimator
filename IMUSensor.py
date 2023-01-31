@@ -55,7 +55,6 @@ class IMUSensor:
         times = np.array([times[i] - times[i - 1] for i in range(1, len(times))])
         SamplingPeriod = np.mean(times)
 
-        print(f"Sampling period: {SamplingPeriod}")
         RxAcc = self.getRawAcceleratorX()
         gyroX = self.getGyroX()
         RyAcc = self.getRawAcceleratorY()
@@ -65,7 +64,8 @@ class IMUSensor:
         RAcc = [np.sqrt((RxAcc[0] ** 2) + (RyAcc[0] ** 2) + (RzAcc[0] ** 2))]
         RxAccComp = [RxAcc[0]]
         RyAccComp = [RyAcc[0]]
-        RzAccComp = [RzAcc[0] - 1]
+        RzAccComp = [RzAcc[0]]
+        # RzAccComp = [RzAcc[0] - 1]
 
         RxAcc[0] /= RAcc[0]
         RyAcc[0] /= RAcc[0]
@@ -93,6 +93,10 @@ class IMUSensor:
             Axz.append(np.arctan2(RxEst[i - 1], RzEst[i - 1]) + (((gyroY[i - 1] + gyroY[i]) / 2) * SamplingPeriod))
             Ayz.append(np.arctan2(RyEst[i - 1], RzEst[i - 1]) + (((gyroX[i - 1] + gyroX[i]) / 2) * SamplingPeriod))
 
+            # Axy.append(Axy[i - 1] + (((gyroZ[i - 1] + gyroZ[i]) / 2) * SamplingPeriod))
+            # Axz.append(Axz[i - 1] + (((gyroY[i - 1] + gyroY[i]) / 2) * SamplingPeriod))
+            # Ayz.append(Ayz[i - 1] + (((gyroX[i - 1] + gyroX[i]) / 2) * SamplingPeriod))
+
             RxGyro.append(np.sin(Axz[i]) / np.sqrt(1 + ((np.cos(Axz[i]) ** 2) * (np.tan(Ayz[i]) ** 2))))
             RyGyro.append(np.sin(Ayz[i]) / np.sqrt(1 + ((np.cos(Ayz[i]) ** 2) * (np.tan(Axz[i]) ** 2))))
             RzGyro.append(np.cos(Ayz[i]) / np.sqrt(1 + ((np.cos(Ayz[i]) ** 2) * (np.tan(Axz[i]) ** 2))))
@@ -110,7 +114,7 @@ class IMUSensor:
             RxAccComp.append(RxEst[i] * RAcc[i])
             RyAccComp.append(RyEst[i] * RAcc[i])
             RzAccComp.append(RzEst[i] * RAcc[i])
-            RzAccComp[-1] -= 1 #Gravity compensation
+            # RzAccComp[-1] -= 1 #Gravity compensation
 
         self.RAcc = [RxAcc, RyAcc, RzAcc]
         self.RGyro = [RxGyro, RyGyro, RzGyro]
@@ -134,8 +138,6 @@ class IMUSensor:
         times = np.array([times[i] - times[i - 1] for i in range(1, len(times))])
         SamplingPeriod = np.mean(times)
 
-        print(f"VelX len: {len(VelX)}")
-        print(f"Times len: {len(times)}")
         for i in range(1, len(self.getAccXCompensated())):
             VelX.append(VelX[i - 1] + (self.AccComp[0][i] * SamplingPeriod))
             VelY.append(VelY[i - 1] + (self.AccComp[1][i] * SamplingPeriod))
