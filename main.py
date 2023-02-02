@@ -25,7 +25,7 @@ with open('output.csv', newline="\r\n") as csvfile:
     sensor.calculateTrajectory()
     print(sensor)
 
-    sensor.plotRawMeasurements()
+    sensor.plotRawMeasurements(show=True)
     sensor.plotCalculation()
     sensor.plotComparison()
     sensor.plotFiltering()
